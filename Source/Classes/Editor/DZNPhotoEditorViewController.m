@@ -570,6 +570,7 @@ DZNPhotoAspect photoAspectFromSize(CGSize aspectRatio)
 
 - (UIImage *)editedImageFromOriginalImage:(UIImage *)originalImage
 {
+    NSLog(@"original image size = %@", NSStringFromCGSize(originalImage.size));
     UIImage *image = nil;
     
     CGRect viewRect = self.navigationController.view.bounds;
@@ -582,7 +583,6 @@ DZNPhotoAspect photoAspectFromSize(CGSize aspectRatio)
     NSLog(@"vertical margin = %f", verticalMargin);
     
     guideRect.origin.x = -self.scrollView.contentOffset.x;
-//    guideRect.origin.y = -self.scrollView.contentOffset.y - verticalMargin;
     guideRect.origin.y = -self.scrollView.contentOffset.y - self.scrollView.contentInset.top;
     
     if (DZN_IS_IPAD && self.cropMode == DZNPhotoEditorViewControllerCropModeCircular) {
@@ -591,7 +591,6 @@ DZNPhotoAspect photoAspectFromSize(CGSize aspectRatio)
     
     NSLog(@"guide rect = %@", NSStringFromCGRect(guideRect));
     
-//    self.scrollView.contentInset
     NSLog(@"content inset = %@", NSStringFromUIEdgeInsets(self.scrollView.contentInset));
     
     
@@ -603,23 +602,22 @@ DZNPhotoAspect photoAspectFromSize(CGSize aspectRatio)
                                         scaleFromEditedImageToOriginalImage * CGRectGetHeight(guideRect));
     
     
-//    NSLog(@"scale = %f", scaleFromEditedImageToOriginalImage);
-//    NSLog(@"guideRect = %@", NSStringFromCGRect(guideRect));
     NSLog(@"scaled guide rect = %@", NSStringFromCGRect(scaledGuideRect));
+    
     UIGraphicsBeginImageContextWithOptions(scaledGuideRect.size, NO, 0);{
+        
         CGContextRef context = UIGraphicsGetCurrentContext();
-        
-        // TODO: scale to desired crop
-//        CGContextScaleCTM(context, _scrollView.zoomScale, _scrollView.zoomScale);
-//        NSLog(@"zoom scale = %f", _scrollView.zoomScale);
-//        NSLog(@"content offset = %f %f", _scrollView.contentOffset.x, _scrollView.contentOffset.y);
-        
-        CGFloat xTranslation = scaledGuideRect.origin.x + _scrollView.contentOffset.x * scaleFromEditedImageToOriginalImage;
-        CGFloat yTranslation = CGRectGetMinY(scaledGuideRect);
+
+        CGFloat xTranslation = CGRectGetMinX(scaledGuideRect) / _scrollView.zoomScale;
+        CGFloat yTranslation = CGRectGetMinY(scaledGuideRect) / _scrollView.zoomScale;
         
         NSLog(@"yTranslation = %f", yTranslation);
         
+        CGContextScaleCTM(context, _scrollView.zoomScale, _scrollView.zoomScale);
+        
         CGContextTranslateCTM(context, xTranslation, yTranslation);
+        
+        
         [originalImage drawInRect:CGRectMake(0.0f, 0.0f, originalImage.size.width, originalImage.size.height)];
         
         image = UIGraphicsGetImageFromCurrentImageContext();
