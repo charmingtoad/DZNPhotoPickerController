@@ -570,37 +570,23 @@ DZNPhotoAspect photoAspectFromSize(CGSize aspectRatio)
 
 - (UIImage *)editedImageFromOriginalImage:(UIImage *)originalImage
 {
-   
-    
-    NSLog(@"original image size = %@", NSStringFromCGSize(originalImage.size));
     UIImage *image = nil;
     
     CGRect viewRect = self.navigationController.view.bounds;
     CGRect guideRect = [self guideRect];
     
-    
     if (CGRectGetWidth(guideRect) < CGRectGetWidth(viewRect) && CGRectGetHeight(guideRect) < CGRectGetHeight(viewRect)) {
         return [self editedImage];
     }
-//    guideRect = CGRectMake(guideRect.origin.x, guideRect.origin.y, CGRectGetWidth(_scrollView.frame), guideRect.size.height);
     
-    
-    CGFloat verticalMargin = (viewRect.size.height-guideRect.size.height)/2;
-    
-    NSLog(@"vertical margin = %f", verticalMargin);
+    CGFloat verticalMargin = (viewRect.size.height-guideRect.size.height) / 2.0f;
     
     guideRect.origin.x = -self.scrollView.contentOffset.x;
     guideRect.origin.y = -self.scrollView.contentOffset.y - self.scrollView.contentInset.top / _scrollView.zoomScale;
     
     if (DZN_IS_IPAD && self.cropMode == DZNPhotoEditorViewControllerCropModeCircular) {
-        guideRect.origin.y -= CGRectGetHeight(self.navigationController.navigationBar.bounds)/2.0;
+        guideRect.origin.y -= CGRectGetHeight(self.navigationController.navigationBar.bounds) / 2.0f;
     }
-    
-    NSLog(@"guide rect = %@", NSStringFromCGRect(guideRect));
-    
-    NSLog(@"content inset = %@", NSStringFromUIEdgeInsets(self.scrollView.contentInset));
-    
-    
     
     CGFloat scaleFromEditedImageToOriginalImage = originalImage.size.width / CGRectGetWidth(self.scrollView.frame);
     CGRect scaledGuideRect = CGRectMake(scaleFromEditedImageToOriginalImage * CGRectGetMinX(guideRect),
@@ -608,30 +594,21 @@ DZNPhotoAspect photoAspectFromSize(CGSize aspectRatio)
                                         scaleFromEditedImageToOriginalImage * CGRectGetWidth(guideRect),
                                         scaleFromEditedImageToOriginalImage * CGRectGetHeight(guideRect));
     
-    
-    NSLog(@"scaled guide rect = %@", NSStringFromCGRect(scaledGuideRect));
-    
     UIGraphicsBeginImageContextWithOptions(scaledGuideRect.size, NO, 0);{
         
         CGContextRef context = UIGraphicsGetCurrentContext();
 
         CGFloat xTranslation = CGRectGetMinX(scaledGuideRect) / _scrollView.zoomScale;
-        CGFloat yTranslation = CGRectGetMinY(scaledGuideRect) / _scrollView.zoomScale;// + 400 for 2x;
-        
-        NSLog(@"yTranslation = %f", yTranslation);
+        CGFloat yTranslation = CGRectGetMinY(scaledGuideRect) / _scrollView.zoomScale;
         
         CGContextScaleCTM(context, _scrollView.zoomScale, _scrollView.zoomScale);
-        
         CGContextTranslateCTM(context, xTranslation, yTranslation);
-        
         
         [originalImage drawInRect:CGRectMake(0.0f, 0.0f, originalImage.size.width, originalImage.size.height)];
         
         image = UIGraphicsGetImageFromCurrentImageContext();
         UIGraphicsEndImageContext();
     }
-    
-
     
     if (self.cropMode == DZNPhotoEditorViewControllerCropModeCircular) {
         
