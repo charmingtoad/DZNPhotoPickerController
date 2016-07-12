@@ -327,16 +327,43 @@ typedef NS_ENUM(NSInteger, DZNPhotoAspect) {
     return button;
 }
 
-- (CGSize)cropSize
+- (CGSize)imageCropSize
 {
     CGSize viewSize = (!DZN_IS_IPAD) ? self.view.bounds.size : self.navigationController.preferredContentSize;
     
     if (self.cropMode == DZNPhotoEditorViewControllerCropModeCustom) {
+        return _cropSize;
+    }
+    else {
+        return CGSizeMake(viewSize.width, viewSize.width);
+    }
+}
+
+- (CGSize)screenCropSize
+{
+    CGSize viewSize = (!DZN_IS_IPAD) ? self.view.bounds.size : self.navigationController.preferredContentSize;
+    
+    if (_cropSize.width <= viewSize.width && _cropSize.height <= viewSize.height) {
         CGFloat cropHeight = roundf((_cropSize.height * viewSize.width) / _cropSize.width);
+        CGFloat cropWidth = roundf((_cropSize.width * viewSize.width) / _cropSize.width);
         if (cropHeight > viewSize.height) {
             cropHeight = viewSize.height;
         }
         return CGSizeMake(_cropSize.width, cropHeight);
+    }
+    
+    if (self.cropMode == DZNPhotoEditorViewControllerCropModeCustom) {
+        CGFloat horizontalScaleFactor = viewSize.width / _cropSize.width;
+        CGFloat verticalScaleFactor = viewSize.height / _cropSize.height;
+        CGFloat scaleFactor;
+        if (horizontalScaleFactor < verticalScaleFactor) {
+            scaleFactor = horizontalScaleFactor;
+        }
+        else {
+            scaleFactor = verticalScaleFactor;
+        }
+        
+        return CGSizeMake(_cropSize.width * scaleFactor, _cropSize.height * scaleFactor);
     }
     else {
         return CGSizeMake(viewSize.width, viewSize.width);
@@ -345,8 +372,8 @@ typedef NS_ENUM(NSInteger, DZNPhotoAspect) {
 
 - (CGRect)guideRect
 {
-    CGFloat margin = (CGRectGetHeight(self.navigationController.view.bounds)-self.cropSize.height)/2;
-    return CGRectMake(0.0, margin, self.cropSize.width, self.cropSize.height);
+    CGFloat margin = (CGRectGetHeight(self.navigationController.view.bounds)-[self screenCropSize].height)/2;
+    return CGRectMake(0.0, margin, [self screenCropSize].width, [self screenCropSize].height);
 }
 
 - (CGFloat)innerInset
@@ -409,9 +436,9 @@ DZNPhotoAspect photoAspectFromSize(CGSize aspectRatio)
     // Constants
     CGRect bounds = self.navigationController.view.bounds;
     
-    CGFloat width = self.cropSize.width;
-    CGFloat height = self.cropSize.height;
-    CGFloat margin = (bounds.size.height-self.cropSize.height)/2;
+    CGFloat width = [self screenCropSize].width;
+    CGFloat height = [self screenCropSize].height;
+    CGFloat margin = (bounds.size.height-[self screenCropSize].height)/2;
     CGFloat lineWidth = 1.0;
     
     // Create the image context
@@ -435,7 +462,7 @@ DZNPhotoAspect photoAspectFromSize(CGSize aspectRatio)
     [clipPath fill];
     
     // Add the square crop
-    CGRect rect = CGRectMake(lineWidth/2, margin+lineWidth/2, width-lineWidth, self.cropSize.height-lineWidth);
+    CGRect rect = CGRectMake(lineWidth/2, margin+lineWidth/2, width-lineWidth, [self screenCropSize].height-lineWidth);
     UIBezierPath *maskPath = [UIBezierPath bezierPathWithRect:rect];
     [[UIColor colorWithWhite:1.0 alpha:0.5] setStroke];
     maskPath.lineWidth = lineWidth;
@@ -538,6 +565,90 @@ DZNPhotoAspect photoAspectFromSize(CGSize aspectRatio)
         }
     }
 
+    return image;
+}
+
+- (UIImage *)editedImageFromOriginalImage:(UIImage *)originalImage
+{
+    UIImage *image = nil;
+    
+    CGRect viewRect = self.navigationController.view.bounds;
+    CGRect guideRect = [self guideRect];
+//    guideRect = CGRectMake(guideRect.origin.x, guideRect.origin.y, CGRectGetWidth(_scrollView.frame), guideRect.size.height);
+    
+    
+    CGFloat verticalMargin = (viewRect.size.height-guideRect.size.height)/2;
+    
+    NSLog(@"vertical margin = %f", verticalMargin);
+    
+    guideRect.origin.x = -self.scrollView.contentOffset.x;
+//    guideRect.origin.y = -self.scrollView.contentOffset.y - verticalMargin;
+    guideRect.origin.y = -self.scrollView.contentOffset.y - self.scrollView.contentInset.top;
+    
+    if (DZN_IS_IPAD && self.cropMode == DZNPhotoEditorViewControllerCropModeCircular) {
+        guideRect.origin.y -= CGRectGetHeight(self.navigationController.navigationBar.bounds)/2.0;
+    }
+    
+    NSLog(@"guide rect = %@", NSStringFromCGRect(guideRect));
+    
+//    self.scrollView.contentInset
+    NSLog(@"content inset = %@", NSStringFromUIEdgeInsets(self.scrollView.contentInset));
+    
+    
+    
+    CGFloat scaleFromEditedImageToOriginalImage = originalImage.size.width / CGRectGetWidth(self.scrollView.frame);
+    CGRect scaledGuideRect = CGRectMake(scaleFromEditedImageToOriginalImage * CGRectGetMinX(guideRect),
+                                        scaleFromEditedImageToOriginalImage * CGRectGetMinY(guideRect),
+                                        scaleFromEditedImageToOriginalImage * CGRectGetWidth(guideRect),
+                                        scaleFromEditedImageToOriginalImage * CGRectGetHeight(guideRect));
+    
+    
+//    NSLog(@"scale = %f", scaleFromEditedImageToOriginalImage);
+//    NSLog(@"guideRect = %@", NSStringFromCGRect(guideRect));
+    NSLog(@"scaled guide rect = %@", NSStringFromCGRect(scaledGuideRect));
+    UIGraphicsBeginImageContextWithOptions(scaledGuideRect.size, NO, 0);{
+        CGContextRef context = UIGraphicsGetCurrentContext();
+        
+        // TODO: scale to desired crop
+//        CGContextScaleCTM(context, _scrollView.zoomScale, _scrollView.zoomScale);
+//        NSLog(@"zoom scale = %f", _scrollView.zoomScale);
+//        NSLog(@"content offset = %f %f", _scrollView.contentOffset.x, _scrollView.contentOffset.y);
+        
+        CGFloat xTranslation = scaledGuideRect.origin.x + _scrollView.contentOffset.x * scaleFromEditedImageToOriginalImage;
+        CGFloat yTranslation = CGRectGetMinY(scaledGuideRect);
+        
+        NSLog(@"yTranslation = %f", yTranslation);
+        
+        CGContextTranslateCTM(context, xTranslation, yTranslation);
+        [originalImage drawInRect:CGRectMake(0.0f, 0.0f, originalImage.size.width, originalImage.size.height)];
+        
+        image = UIGraphicsGetImageFromCurrentImageContext();
+        UIGraphicsEndImageContext();
+    }
+    
+
+    
+    if (self.cropMode == DZNPhotoEditorViewControllerCropModeCircular) {
+        
+        CGFloat diameter = viewRect.size.width-(self.innerInset*2);
+        CGRect circularRect = CGRectMake(0, 0, diameter, diameter);
+        
+        CGFloat increment = 1.0/(((self.innerInset*2)*100.0)/viewRect.size.width);
+        CGFloat scale = 1.0 + round(increment * 10) / 10.0;
+        
+        UIGraphicsBeginImageContextWithOptions(circularRect.size, NO, 0.0);{
+            
+            CGContextRef context = UIGraphicsGetCurrentContext();
+            CGContextTranslateCTM(context, -self.innerInset, -self.innerInset);
+            CGContextScaleCTM(context, scale, scale);
+            
+            [image drawInRect:circularRect];
+            
+            image = UIGraphicsGetImageFromCurrentImageContext();
+            UIGraphicsEndImageContext();
+        }
+    }
+    
     return image;
 }
 
@@ -668,7 +779,7 @@ DZNPhotoAspect photoAspectFromSize(CGSize aspectRatio)
 {
     CGSize imageSize = CGSizeAspectFit(self.imageView.image.size, self.imageView.frame.size);
     
-    CGFloat maskHeight = (self.cropMode == DZNPhotoEditorViewControllerCropModeCircular) ? self.cropSize.width-(self.innerInset*2) : self.cropSize.height;
+    CGFloat maskHeight = (self.cropMode == DZNPhotoEditorViewControllerCropModeCircular) ? [self screenCropSize].width-(self.innerInset*2) : [self screenCropSize].height;
     
     CGFloat hInset = (self.cropMode == DZNPhotoEditorViewControllerCropModeCircular) ? self.innerInset : 0.0;
     CGFloat vInset = fabs((maskHeight-imageSize.height)/2);
@@ -694,7 +805,7 @@ DZNPhotoAspect photoAspectFromSize(CGSize aspectRatio)
     dispatch_queue_t exampleQueue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_BACKGROUND, 0);
     dispatch_async(exampleQueue, ^{
         
-        UIImage *editedImage = [self trimmedImage:[self editedImage]];
+        UIImage *editedImage = [self trimmedImage:[self editedImageFromOriginalImage:self.imageView.image]];
         
         dispatch_queue_t queue = dispatch_get_main_queue();
         dispatch_async(queue, ^{
