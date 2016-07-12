@@ -343,16 +343,16 @@ typedef NS_ENUM(NSInteger, DZNPhotoAspect) {
 {
     CGSize viewSize = (!DZN_IS_IPAD) ? self.view.bounds.size : self.navigationController.preferredContentSize;
     
-    if (_cropSize.width <= viewSize.width && _cropSize.height <= viewSize.height) {
-        CGFloat cropHeight = roundf((_cropSize.height * viewSize.width) / _cropSize.width);
-        CGFloat cropWidth = roundf((_cropSize.width * viewSize.width) / _cropSize.width);
-        if (cropHeight > viewSize.height) {
-            cropHeight = viewSize.height;
-        }
-        return CGSizeMake(_cropSize.width, cropHeight);
-    }
-    
     if (self.cropMode == DZNPhotoEditorViewControllerCropModeCustom) {
+        if (_cropSize.width <= viewSize.width && _cropSize.height <= viewSize.height) {
+            CGFloat cropHeight = roundf((_cropSize.height * viewSize.width) / _cropSize.width);
+            CGFloat cropWidth = roundf((_cropSize.width * viewSize.width) / _cropSize.width);
+            if (cropHeight > viewSize.height) {
+                cropHeight = viewSize.height;
+            }
+            return CGSizeMake(cropWidth, cropHeight);
+        }
+        
         CGFloat horizontalScaleFactor = viewSize.width / _cropSize.width;
         CGFloat verticalScaleFactor = viewSize.height / _cropSize.height;
         CGFloat scaleFactor;
@@ -575,7 +575,7 @@ DZNPhotoAspect photoAspectFromSize(CGSize aspectRatio)
     CGRect viewRect = self.navigationController.view.bounds;
     CGRect guideRect = [self guideRect];
     
-    if (CGRectGetWidth(guideRect) < CGRectGetWidth(viewRect) && CGRectGetHeight(guideRect) < CGRectGetHeight(viewRect)) {
+    if (self.cropSize.width < CGRectGetWidth(viewRect) && self.cropSize.height < CGRectGetHeight(viewRect)) {
         return [self editedImage];
     }
     
