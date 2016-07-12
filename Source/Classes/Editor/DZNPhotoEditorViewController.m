@@ -570,11 +570,18 @@ DZNPhotoAspect photoAspectFromSize(CGSize aspectRatio)
 
 - (UIImage *)editedImageFromOriginalImage:(UIImage *)originalImage
 {
+   
+    
     NSLog(@"original image size = %@", NSStringFromCGSize(originalImage.size));
     UIImage *image = nil;
     
     CGRect viewRect = self.navigationController.view.bounds;
     CGRect guideRect = [self guideRect];
+    
+    
+    if (CGRectGetWidth(guideRect) < CGRectGetWidth(viewRect) && CGRectGetHeight(guideRect) < CGRectGetHeight(viewRect)) {
+        return [self editedImage];
+    }
 //    guideRect = CGRectMake(guideRect.origin.x, guideRect.origin.y, CGRectGetWidth(_scrollView.frame), guideRect.size.height);
     
     
@@ -583,7 +590,7 @@ DZNPhotoAspect photoAspectFromSize(CGSize aspectRatio)
     NSLog(@"vertical margin = %f", verticalMargin);
     
     guideRect.origin.x = -self.scrollView.contentOffset.x;
-    guideRect.origin.y = -self.scrollView.contentOffset.y - self.scrollView.contentInset.top;
+    guideRect.origin.y = -self.scrollView.contentOffset.y - self.scrollView.contentInset.top / _scrollView.zoomScale;
     
     if (DZN_IS_IPAD && self.cropMode == DZNPhotoEditorViewControllerCropModeCircular) {
         guideRect.origin.y -= CGRectGetHeight(self.navigationController.navigationBar.bounds)/2.0;
@@ -609,7 +616,7 @@ DZNPhotoAspect photoAspectFromSize(CGSize aspectRatio)
         CGContextRef context = UIGraphicsGetCurrentContext();
 
         CGFloat xTranslation = CGRectGetMinX(scaledGuideRect) / _scrollView.zoomScale;
-        CGFloat yTranslation = CGRectGetMinY(scaledGuideRect) / _scrollView.zoomScale;
+        CGFloat yTranslation = CGRectGetMinY(scaledGuideRect) / _scrollView.zoomScale;// + 400 for 2x;
         
         NSLog(@"yTranslation = %f", yTranslation);
         
