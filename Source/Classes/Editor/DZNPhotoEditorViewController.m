@@ -588,11 +588,16 @@ DZNPhotoAspect photoAspectFromSize(CGSize aspectRatio)
         guideRect.origin.y -= CGRectGetHeight(self.navigationController.navigationBar.bounds) / 2.0f;
     }
     
+    CGFloat scaleFromOriginalImageToCropImage;
+    CGFloat horizontalScaleFromOriginalImageToCropImage =  self.cropSize.width / originalImage.size.width;
+    CGFloat verticalScaleFromOriginalImageToCropImage = self.cropSize.height / originalImage.size.height;
+    scaleFromOriginalImageToCropImage = MAX(horizontalScaleFromOriginalImageToCropImage, verticalScaleFromOriginalImageToCropImage);
+    
     CGFloat scaleFromEditedImageToOriginalImage = originalImage.size.width / CGRectGetWidth(self.scrollView.frame);
-    CGRect scaledGuideRect = CGRectMake(scaleFromEditedImageToOriginalImage * CGRectGetMinX(guideRect),
-                                        scaleFromEditedImageToOriginalImage * CGRectGetMinY(guideRect),
-                                        scaleFromEditedImageToOriginalImage * CGRectGetWidth(guideRect),
-                                        scaleFromEditedImageToOriginalImage * CGRectGetHeight(guideRect));
+    CGRect scaledGuideRect = CGRectMake(scaleFromOriginalImageToCropImage * scaleFromEditedImageToOriginalImage * CGRectGetMinX(guideRect),
+                                        scaleFromOriginalImageToCropImage * scaleFromEditedImageToOriginalImage * CGRectGetMinY(guideRect),
+                                        scaleFromOriginalImageToCropImage * scaleFromEditedImageToOriginalImage * CGRectGetWidth(guideRect),
+                                        scaleFromOriginalImageToCropImage * scaleFromEditedImageToOriginalImage * CGRectGetHeight(guideRect));
     
     UIGraphicsBeginImageContextWithOptions(scaledGuideRect.size, NO, 0);{
         
@@ -604,7 +609,7 @@ DZNPhotoAspect photoAspectFromSize(CGSize aspectRatio)
         CGContextScaleCTM(context, _scrollView.zoomScale, _scrollView.zoomScale);
         CGContextTranslateCTM(context, xTranslation, yTranslation);
         
-        [originalImage drawInRect:CGRectMake(0.0f, 0.0f, originalImage.size.width, originalImage.size.height)];
+        [originalImage drawInRect:CGRectMake(0.0f, 0.0f, originalImage.size.width * scaleFromOriginalImageToCropImage, originalImage.size.height * scaleFromOriginalImageToCropImage)];
         
         image = UIGraphicsGetImageFromCurrentImageContext();
         UIGraphicsEndImageContext();
