@@ -779,6 +779,14 @@ DZNPhotoAspect photoAspectFromSize(CGSize aspectRatio)
         inset.top += CGRectGetHeight(self.navigationController.navigationBar.frame)/2.0;
         inset.bottom -= CGRectGetHeight(self.navigationController.navigationBar.frame)/2.0;
     }
+
+    if (self.cropMode == DZNPhotoEditorViewControllerCropModeCustom) {
+        CGFloat cropY = (CGRectGetHeight(_scrollView.frame) - maskHeight) / 2.0f;
+        CGFloat imageOffset = (CGRectGetHeight(self.imageView.frame) - imageSize.height) / 2.0f;
+        CGFloat newInset = imageOffset - cropY;
+        inset.top = -newInset;
+        inset.bottom = -newInset;
+    }
     
     self.scrollView.contentInset = inset;
 }
