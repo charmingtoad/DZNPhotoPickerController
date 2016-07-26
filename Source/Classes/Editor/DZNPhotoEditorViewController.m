@@ -579,10 +579,8 @@ DZNPhotoAspect photoAspectFromSize(CGSize aspectRatio)
         return [self editedImage];
     }
     
-    CGFloat verticalMargin = (viewRect.size.height-guideRect.size.height) / 2.0f;
-    
     guideRect.origin.x = -self.scrollView.contentOffset.x;
-    guideRect.origin.y = -self.scrollView.contentOffset.y - self.scrollView.contentInset.top / _scrollView.zoomScale;
+    guideRect.origin.y = -self.scrollView.contentOffset.y - self.scrollView.contentInset.top;
     
     if (DZN_IS_IPAD && self.cropMode == DZNPhotoEditorViewControllerCropModeCircular) {
         guideRect.origin.y -= CGRectGetHeight(self.navigationController.navigationBar.bounds) / 2.0f;
